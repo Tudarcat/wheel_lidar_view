@@ -1,0 +1,356 @@
+[gd_scene load_steps=3 format=3 uid="uid://ndai3j8elqbe"]
+
+[ext_resource type="Script" path="res://scripts/hud.gd" id="1_hud"]
+[ext_resource type="Script" path="res://scripts/ui_window.gd" id="2_window"]
+
+[node name="HUD" type="CanvasLayer"]
+script = ExtResource("1_hud")
+
+[node name="LidarPane" type="PanelContainer" parent="."]
+offset_left = 20.0
+offset_top = 20.0
+offset_right = 320.0
+offset_bottom = 320.0
+custom_minimum_size = Vector2(300, 0)
+unique_name_in_owner = true
+script = ExtResource("2_window")
+title = "雷达 3D 视图"
+closable = true
+
+[node name="Content" type="VBoxContainer" parent="LidarPane"]
+unique_name_in_owner = true
+theme_override_constants/separation = 6
+
+[node name="StatusRow" type="HBoxContainer" parent="LidarPane/Content"]
+theme_override_constants/separation = 6
+
+[node name="LidarDot" type="Label" parent="LidarPane/Content/StatusRow"]
+unique_name_in_owner = true
+text = "●"
+
+[node name="LidarText" type="Label" parent="LidarPane/Content/StatusRow"]
+unique_name_in_owner = true
+text = "等待数据"
+size_flags_horizontal = 3
+
+[node name="SectionPoint" type="PanelContainer" parent="LidarPane/Content"]
+
+[node name="VBox" type="VBoxContainer" parent="LidarPane/Content/SectionPoint"]
+theme_override_constants/separation = 3
+
+[node name="Hdr" type="Label" parent="LidarPane/Content/SectionPoint/VBox"]
+text = "点云"
+
+[node name="RowPoints" type="HBoxContainer" parent="LidarPane/Content/SectionPoint/VBox"]
+[node name="KPoints" type="Label" parent="LidarPane/Content/SectionPoint/VBox/RowPoints"]
+size_flags_horizontal = 3
+text = "渲染 / 有效"
+[node name="ValuePoints" type="Label" parent="LidarPane/Content/SectionPoint/VBox/RowPoints"]
+unique_name_in_owner = true
+horizontal_alignment = 2
+text = "—"
+
+[node name="RowHz" type="HBoxContainer" parent="LidarPane/Content/SectionPoint/VBox"]
+[node name="KHz" type="Label" parent="LidarPane/Content/SectionPoint/VBox/RowHz"]
+size_flags_horizontal = 3
+text = "帧率"
+[node name="ValueHz" type="Label" parent="LidarPane/Content/SectionPoint/VBox/RowHz"]
+unique_name_in_owner = true
+horizontal_alignment = 2
+text = "—"
+
+[node name="RowMode" type="HBoxContainer" parent="LidarPane/Content/SectionPoint/VBox"]
+[node name="KMode" type="Label" parent="LidarPane/Content/SectionPoint/VBox/RowMode"]
+size_flags_horizontal = 3
+text = "合并方式"
+[node name="ValueMode" type="Label" parent="LidarPane/Content/SectionPoint/VBox/RowMode"]
+unique_name_in_owner = true
+horizontal_alignment = 2
+text = "—"
+
+[node name="RowRange" type="HBoxContainer" parent="LidarPane/Content/SectionPoint/VBox"]
+[node name="KRange" type="Label" parent="LidarPane/Content/SectionPoint/VBox/RowRange"]
+size_flags_horizontal = 3
+text = "量程"
+[node name="ValueRange" type="Label" parent="LidarPane/Content/SectionPoint/VBox/RowRange"]
+unique_name_in_owner = true
+horizontal_alignment = 2
+text = "—"
+
+[node name="RowView" type="HBoxContainer" parent="LidarPane/Content/SectionPoint/VBox"]
+[node name="KView" type="Label" parent="LidarPane/Content/SectionPoint/VBox/RowView"]
+size_flags_horizontal = 3
+text = "观察"
+[node name="ValueView" type="Label" parent="LidarPane/Content/SectionPoint/VBox/RowView"]
+unique_name_in_owner = true
+horizontal_alignment = 2
+text = "—"
+
+[node name="SectionData" type="PanelContainer" parent="LidarPane/Content"]
+
+[node name="VBox" type="VBoxContainer" parent="LidarPane/Content/SectionData"]
+theme_override_constants/separation = 3
+
+[node name="Hdr" type="Label" parent="LidarPane/Content/SectionData/VBox"]
+text = "数据源"
+
+[node name="ValueSource" type="Label" parent="LidarPane/Content/SectionData/VBox"]
+unique_name_in_owner = true
+text = "—"
+
+[node name="Hint" type="Label" parent="LidarPane/Content"]
+unique_name_in_owner = true
+autowrap_mode = 2
+text = "M 合并 · V 视角 · Tab 管理 · R 复位"
+
+[node name="ChassisPane" type="PanelContainer" parent="."]
+offset_left = 20.0
+offset_top = 360.0
+offset_right = 320.0
+offset_bottom = 640.0
+custom_minimum_size = Vector2(300, 0)
+unique_name_in_owner = true
+script = ExtResource("2_window")
+title = "基本信息"
+closable = true
+
+[node name="Content" type="VBoxContainer" parent="ChassisPane"]
+unique_name_in_owner = true
+theme_override_constants/separation = 6
+
+[node name="StatusRow" type="HBoxContainer" parent="ChassisPane/Content"]
+theme_override_constants/separation = 6
+
+[node name="ChassisDot" type="Label" parent="ChassisPane/Content/StatusRow"]
+unique_name_in_owner = true
+text = "●"
+
+[node name="ChassisText" type="Label" parent="ChassisPane/Content/StatusRow"]
+unique_name_in_owner = true
+text = "等待遥测"
+size_flags_horizontal = 3
+
+[node name="SectionHero" type="PanelContainer" parent="ChassisPane/Content"]
+
+[node name="HBox" type="HBoxContainer" parent="ChassisPane/Content/SectionHero"]
+theme_override_constants/separation = 10
+
+[node name="ColSpeed" type="VBoxContainer" parent="ChassisPane/Content/SectionHero/HBox"]
+size_flags_horizontal = 3
+theme_override_constants/separation = 0
+
+[node name="Cap" type="Label" parent="ChassisPane/Content/SectionHero/HBox/ColSpeed"]
+text = "线速度 m/s"
+horizontal_alignment = 1
+
+[node name="BigSpeed" type="Label" parent="ChassisPane/Content/SectionHero/HBox/ColSpeed"]
+unique_name_in_owner = true
+text = "—"
+horizontal_alignment = 1
+
+[node name="ColOmega" type="VBoxContainer" parent="ChassisPane/Content/SectionHero/HBox"]
+size_flags_horizontal = 3
+theme_override_constants/separation = 0
+
+[node name="Cap" type="Label" parent="ChassisPane/Content/SectionHero/HBox/ColOmega"]
+text = "角速度 rad/s"
+horizontal_alignment = 1
+
+[node name="BigOmega" type="Label" parent="ChassisPane/Content/SectionHero/HBox/ColOmega"]
+unique_name_in_owner = true
+text = "—"
+horizontal_alignment = 1
+
+[node name="SectionMotion" type="PanelContainer" parent="ChassisPane/Content"]
+
+[node name="VBox" type="VBoxContainer" parent="ChassisPane/Content/SectionMotion"]
+theme_override_constants/separation = 3
+
+[node name="Hdr" type="Label" parent="ChassisPane/Content/SectionMotion/VBox"]
+text = "运动"
+
+[node name="RowAccel" type="HBoxContainer" parent="ChassisPane/Content/SectionMotion/VBox"]
+[node name="KAccel" type="Label" parent="ChassisPane/Content/SectionMotion/VBox/RowAccel"]
+size_flags_horizontal = 3
+text = "加速度 m/s²"
+[node name="ValueAccel" type="Label" parent="ChassisPane/Content/SectionMotion/VBox/RowAccel"]
+unique_name_in_owner = true
+horizontal_alignment = 2
+text = "—"
+
+[node name="RowPos" type="HBoxContainer" parent="ChassisPane/Content/SectionMotion/VBox"]
+[node name="KPos" type="Label" parent="ChassisPane/Content/SectionMotion/VBox/RowPos"]
+size_flags_horizontal = 3
+text = "位置 x, y"
+[node name="ValuePos" type="Label" parent="ChassisPane/Content/SectionMotion/VBox/RowPos"]
+unique_name_in_owner = true
+horizontal_alignment = 2
+text = "—"
+
+[node name="RowYaw" type="HBoxContainer" parent="ChassisPane/Content/SectionMotion/VBox"]
+[node name="KYaw" type="Label" parent="ChassisPane/Content/SectionMotion/VBox/RowYaw"]
+size_flags_horizontal = 3
+text = "航向"
+[node name="ValueYaw" type="Label" parent="ChassisPane/Content/SectionMotion/VBox/RowYaw"]
+unique_name_in_owner = true
+horizontal_alignment = 2
+text = "—"
+
+[node name="SectionPower" type="PanelContainer" parent="ChassisPane/Content"]
+
+[node name="VBox" type="VBoxContainer" parent="ChassisPane/Content/SectionPower"]
+theme_override_constants/separation = 3
+
+[node name="Hdr" type="Label" parent="ChassisPane/Content/SectionPower/VBox"]
+text = "供电"
+
+[node name="RowVolt" type="HBoxContainer" parent="ChassisPane/Content/SectionPower/VBox"]
+[node name="KVolt" type="Label" parent="ChassisPane/Content/SectionPower/VBox/RowVolt"]
+size_flags_horizontal = 3
+text = "电压"
+[node name="ValueVolt" type="Label" parent="ChassisPane/Content/SectionPower/VBox/RowVolt"]
+unique_name_in_owner = true
+horizontal_alignment = 2
+text = "—"
+
+[node name="RowImu" type="HBoxContainer" parent="ChassisPane/Content/SectionPower/VBox"]
+[node name="KImu" type="Label" parent="ChassisPane/Content/SectionPower/VBox/RowImu"]
+size_flags_horizontal = 3
+text = "IMU 垂直"
+[node name="ValueImu" type="Label" parent="ChassisPane/Content/SectionPower/VBox/RowImu"]
+unique_name_in_owner = true
+horizontal_alignment = 2
+text = "—"
+
+[node name="ManagerPane" type="PanelContainer" parent="."]
+visible = false
+offset_left = 344.0
+offset_top = 20.0
+offset_right = 604.0
+offset_bottom = 260.0
+custom_minimum_size = Vector2(260, 0)
+unique_name_in_owner = true
+script = ExtResource("2_window")
+title = "管理"
+closable = true
+
+[node name="Content" type="VBoxContainer" parent="ManagerPane"]
+unique_name_in_owner = true
+theme_override_constants/separation = 6
+
+[node name="SectionPanes" type="PanelContainer" parent="ManagerPane/Content"]
+
+[node name="VBox" type="VBoxContainer" parent="ManagerPane/Content/SectionPanes"]
+theme_override_constants/separation = 4
+
+[node name="Hdr" type="Label" parent="ManagerPane/Content/SectionPanes/VBox"]
+text = "面板可见性"
+
+[node name="RowLidar" type="HBoxContainer" parent="ManagerPane/Content/SectionPanes/VBox"]
+[node name="KLidar" type="Label" parent="ManagerPane/Content/SectionPanes/VBox/RowLidar"]
+size_flags_horizontal = 3
+text = "雷达 3D 视图"
+[node name="ToggleLidar" type="CheckButton" parent="ManagerPane/Content/SectionPanes/VBox/RowLidar"]
+unique_name_in_owner = true
+focus_mode = 0
+button_pressed = true
+
+[node name="RowChassis" type="HBoxContainer" parent="ManagerPane/Content/SectionPanes/VBox"]
+[node name="KChassis" type="Label" parent="ManagerPane/Content/SectionPanes/VBox/RowChassis"]
+size_flags_horizontal = 3
+text = "基本信息"
+[node name="ToggleChassis" type="CheckButton" parent="ManagerPane/Content/SectionPanes/VBox/RowChassis"]
+unique_name_in_owner = true
+focus_mode = 0
+button_pressed = true
+
+[node name="SectionView" type="PanelContainer" parent="ManagerPane/Content"]
+
+[node name="VBox" type="VBoxContainer" parent="ManagerPane/Content/SectionView"]
+theme_override_constants/separation = 4
+
+[node name="Hdr" type="Label" parent="ManagerPane/Content/SectionView/VBox"]
+text = "视角"
+
+[node name="ViewButtons" type="HBoxContainer" parent="ManagerPane/Content/SectionView/VBox"]
+theme_override_constants/separation = 4
+
+[node name="BtnTop" type="Button" parent="ManagerPane/Content/SectionView/VBox/ViewButtons"]
+unique_name_in_owner = true
+size_flags_horizontal = 3
+focus_mode = 0
+text = "俯视"
+
+[node name="BtnAngled" type="Button" parent="ManagerPane/Content/SectionView/VBox/ViewButtons"]
+unique_name_in_owner = true
+size_flags_horizontal = 3
+focus_mode = 0
+text = "斜俯视"
+
+[node name="BtnFp" type="Button" parent="ManagerPane/Content/SectionView/VBox/ViewButtons"]
+unique_name_in_owner = true
+size_flags_horizontal = 3
+focus_mode = 0
+text = "第一人称"
+
+[node name="Hint" type="Label" parent="ManagerPane/Content"]
+unique_name_in_owner = true
+autowrap_mode = 2
+text = "Tab 打开/关闭本窗"
+
+[node name="Crosshair" type="Control" parent="."]
+unique_name_in_owner = true
+visible = false
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -60.0
+offset_top = -60.0
+offset_right = 60.0
+offset_bottom = 60.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="HBar" type="ColorRect" parent="Crosshair"]
+unique_name_in_owner = true
+offset_left = 47.0
+offset_top = 59.0
+offset_right = 73.0
+offset_bottom = 61.0
+color = Color(1, 0.752941, 0.266667, 1)
+
+[node name="VBar" type="ColorRect" parent="Crosshair"]
+unique_name_in_owner = true
+offset_left = 59.0
+offset_top = 47.0
+offset_right = 61.0
+offset_bottom = 73.0
+color = Color(1, 0.752941, 0.266667, 1)
+
+[node name="CrossDot" type="ColorRect" parent="Crosshair"]
+unique_name_in_owner = true
+offset_left = 58.0
+offset_top = 58.0
+offset_right = 62.0
+offset_bottom = 62.0
+color = Color(1, 0.752941, 0.266667, 1)
+
+[node name="Dist" type="Label" parent="Crosshair"]
+unique_name_in_owner = true
+offset_left = 0.0
+offset_top = 78.0
+offset_right = 120.0
+offset_bottom = 104.0
+horizontal_alignment = 1
+
+[node name="Tip" type="Label" parent="Crosshair"]
+unique_name_in_owner = true
+offset_left = 0.0
+offset_top = 104.0
+offset_right = 120.0
+offset_bottom = 124.0
+text = "对准墙壁测距"
+horizontal_alignment = 1

@@ -1,0 +1,127 @@
+[gd_scene load_steps=19 format=3 uid="uid://bn2tx6jnluexo"]
+
+[ext_resource type="Script" path="res://scripts/lidar_viewer.gd" id="1_viewer"]
+[ext_resource type="Script" path="res://scripts/lidar_receiver.gd" id="2_receiver"]
+[ext_resource type="Script" path="res://scripts/point_cloud.gd" id="3_cloud"]
+[ext_resource type="PackedScene" path="res://scenes/hud.tscn" id="4_hud"]
+[ext_resource type="PackedScene" path="res://assets/models/car/van.glb" id="5_van"]
+[ext_resource type="Shader" path="res://shaders/grid.gdshader" id="6_grid"]
+[ext_resource type="Shader" path="res://shaders/box.gdshader" id="7_box"]
+
+[sub_resource type="Environment" id="Env_main"]
+background_mode = 1
+background_color = Color(0.0431373, 0.054902, 0.0745098, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.62, 0.7, 0.82, 1)
+ambient_light_energy = 0.55
+
+[sub_resource type="PlaneMesh" id="Plane_ground"]
+size = Vector2(120, 120)
+
+[sub_resource type="ShaderMaterial" id="Mat_grid"]
+shader = ExtResource("6_grid")
+
+[sub_resource type="CylinderMesh" id="Cyl_lidar_base"]
+top_radius = 0.075
+bottom_radius = 0.075
+height = 0.028
+radial_segments = 24
+rings = 0
+
+[sub_resource type="CylinderMesh" id="Cyl_lidar_puck"]
+top_radius = 0.058
+bottom_radius = 0.058
+height = 0.05
+radial_segments = 24
+rings = 0
+
+[sub_resource type="TorusMesh" id="Torus_ring"]
+inner_radius = 0.40
+outer_radius = 0.418
+rings = 40
+ring_segments = 8
+
+[sub_resource type="BoxMesh" id="Box_hit"]
+size = Vector3(0.1, 0.1, 0.1)
+
+[sub_resource type="ShaderMaterial" id="Mat_dark"]
+shader = ExtResource("7_box")
+shader_parameter/tint = Color(0.27451, 0.282353, 0.313726, 1)
+
+[sub_resource type="ShaderMaterial" id="Mat_amber"]
+shader = ExtResource("7_box")
+shader_parameter/tint = Color(1, 0.752941, 0.266667, 1)
+shader_parameter/emission_boost = 0.5
+
+[sub_resource type="ShaderMaterial" id="Mat_ring"]
+shader = ExtResource("7_box")
+shader_parameter/tint = Color(1, 0.752941, 0.266667, 1)
+shader_parameter/emission_boost = 0.25
+
+[sub_resource type="ShaderMaterial" id="Mat_hit"]
+shader = ExtResource("7_box")
+shader_parameter/tint = Color(1, 0.494118, 0.266667, 1)
+shader_parameter/emission_boost = 1.2
+
+[node name="Main" type="Node3D"]
+script = ExtResource("1_viewer")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Env_main")
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, -4.37114e-08, 1, 0, -1, -4.37114e-08, 0, 26.5542, 0)
+current = true
+fov = 45.0
+near = 0.05
+far = 400.0
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.848048, 0, 0.529919, 0.449397, 0.529919, -0.719186, -0.280814, 0.848048, 0.449397, 0, 6, 0)
+light_color = Color(1, 0.972549, 0.917647, 1)
+light_energy = 1.15
+shadow_enabled = true
+
+[node name="Floor" type="MeshInstance3D" parent="."]
+mesh = SubResource("Plane_ground")
+material_override = SubResource("Mat_grid")
+
+[node name="Robot" type="Node3D" parent="."]
+
+[node name="Van" parent="Robot" instance=ExtResource("5_van")]
+transform = Transform3D(-0.21, 0, 0, 0, 0.21, 0, 0, 0, -0.21, 0, 0.21, -0.026)
+
+[node name="LidarBase" type="MeshInstance3D" parent="Robot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.4655, 0.05)
+mesh = SubResource("Cyl_lidar_base")
+material_override = SubResource("Mat_dark")
+
+[node name="LidarPuck" type="MeshInstance3D" parent="Robot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5045, 0.05)
+mesh = SubResource("Cyl_lidar_puck")
+material_override = SubResource("Mat_amber")
+
+[node name="Ring" type="MeshInstance3D" parent="Robot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.004, 0)
+mesh = SubResource("Torus_ring")
+material_override = SubResource("Mat_ring")
+
+[node name="FPCamera" type="Camera3D" parent="Robot"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.52, 0.05)
+current = false
+fov = 68.0
+near = 0.03
+far = 200.0
+
+[node name="HitMarker" type="MeshInstance3D" parent="."]
+visible = false
+mesh = SubResource("Box_hit")
+material_override = SubResource("Mat_hit")
+
+[node name="LidarPoints" type="MultiMeshInstance3D" parent="."]
+script = ExtResource("3_cloud")
+
+[node name="LidarReceiver" type="Node" parent="."]
+script = ExtResource("2_receiver")
+
+[node name="HUD" parent="." instance=ExtResource("4_hud")]
