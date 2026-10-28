@@ -17,8 +17,8 @@ enum View { TOP, ANGLED, FIRST_PERSON }
 const VIEW_NAMES := ["俯视", "斜俯视", "第一人称"]
 
 @export var view_radius: float = 11.0
-@export var min_radius: float = 2.0
-@export var max_radius: float = 30.0
+@export var min_radius: float = 3.0
+@export var max_radius: float = 16.0
 @export var camera_fov: float = 45.0
 @export var stale_seconds: float = 1.5
 ## 前几帧按实际最远点自动定视野, 用户滚轮后锁定
@@ -39,6 +39,7 @@ var view: View = View.TOP
 @onready var _hud: LidarHud = $HUD
 @onready var _floor: MeshInstance3D = $Floor
 @onready var _hit: MeshInstance3D = $HitMarker
+@onready var _control: WheeltecControl = $ControlLink
 
 var _last_scan: Dictionary = {}
 var _has_scan := false
@@ -54,7 +55,9 @@ func _ready() -> void:
 	_auto_fit_left = auto_fit_frames
 	_receiver.scan_received.connect(_on_scan)
 	_receiver.telemetry_received.connect(_on_telemetry)
+	_receiver.status_received.connect(_on_status)
 	_hud.view_requested.connect(func(v: int): _set_view(v as View))
+	_hud.control_toggled.connect(_control.set_enabled)
 	_apply_view()
 
 
@@ -64,16 +67,29 @@ func _on_scan(scan: Dictionary) -> void:
 	_cloud.apply_scan(scan)
 	if not _user_zoomed and _auto_fit_left > 0:
 		_auto_fit_left -= 1
-		var farthest := _farthest(scan)
-		if farthest > 0.5:
-			view_radius = clampf(farthest * 1.3, min_radius, max_radius)
+		var reference := _frame_distance(scan)
+		if reference > 0.5:
+			view_radius = clampf(reference * 1.5, min_radius, max_radius)
 			_apply_camera()
 
 
 func _process(_delta: float) -> void:
 	_update_hud()
 	_update_telemetry_pane()
+	_update_control_pane()
 	_update_rangefinder()
+
+
+## bridge 每秒(以及遥控状态一变)会回一包状态, 里面的 control 段就是遥控回执:
+## 底盘订阅者数、已发令次数、是否超时归零 —— 这些只有 bridge 知道。
+func _on_status(info: Dictionary) -> void:
+	var ctrl = info.get("control", {})
+	if typeof(ctrl) == TYPE_DICTIONARY:
+		_control.apply_bridge_status(ctrl)
+
+
+func _update_control_pane() -> void:
+	_hud.update_control(_control.status())
 
 
 func _on_telemetry(tel: Dictionary) -> void:
@@ -88,16 +104,24 @@ func _update_telemetry_pane() -> void:
 	_hud.update_telemetry(_last_tel)
 
 
-## 当前帧里最远的有效点(米)
-func _farthest(scan: Dictionary) -> float:
+## 视野参考距离: 取有效测距的 95 分位, 而不是最远点。
+##
+## 用最远点会踩坑: 一两个孤立的远点(玻璃反射、地面回波、对面走廊尽头)就能把
+## 视野半径顶到十几米, 结果整面近墙被压成一条细线, 车小得看不见。
+## 取分位数则代表"大部分观察落在这个距离内", 对稀疏异常点不敏感。
+func _frame_distance(scan: Dictionary) -> float:
 	var ranges: PackedFloat32Array = scan.ranges
 	var rmax: float = min(scan.range_max, 16.0)
-	var best := 0.0
+	var valid := PackedFloat32Array()
 	for i in ranges.size():
 		var r := ranges[i]
-		if r > 0.0 and r <= rmax and r > best:
-			best = r
-	return best
+		if r > 0.0 and r <= rmax:
+			valid.append(r)
+	if valid.is_empty():
+		return 0.0
+	valid.sort()
+	var index := int(valid.size() * 0.95)
+	return valid[mini(index, valid.size() - 1)]
 
 
 # ---------------------------------------------------------------------------
@@ -209,6 +233,11 @@ func _unhandled_input(event: InputEvent) -> void:
 				_user_zoomed = false
 				_auto_fit_left = auto_fit_frames
 				_set_view(View.TOP)
+			# 档位和 wheeltec-control 用同一组键, 免得两个入口手感不一致
+			KEY_EQUAL, KEY_KP_ADD:
+				_control.change_gear(1)
+			KEY_MINUS, KEY_KP_SUBTRACT:
+				_control.change_gear(-1)
 	elif event is InputEventMouseMotion and view == View.FIRST_PERSON:
 		_yaw = wrapf(_yaw - event.relative.x * look_sensitivity, -PI, PI)
 		_pitch = clampf(_pitch - event.relative.y * look_sensitivity, -1.2, 1.2)

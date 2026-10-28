@@ -1,4 +1,4 @@
-[gd_scene load_steps=19 format=3 uid="uid://bn2tx6jnluexo"]
+[gd_scene load_steps=20 format=3 uid="uid://bn2tx6jnluexo"]
 
 [ext_resource type="Script" path="res://scripts/lidar_viewer.gd" id="1_viewer"]
 [ext_resource type="Script" path="res://scripts/lidar_receiver.gd" id="2_receiver"]
@@ -7,6 +7,7 @@
 [ext_resource type="PackedScene" path="res://assets/models/car/van.glb" id="5_van"]
 [ext_resource type="Shader" path="res://shaders/grid.gdshader" id="6_grid"]
 [ext_resource type="Shader" path="res://shaders/box.gdshader" id="7_box"]
+[ext_resource type="Script" path="res://scripts/control_link.gd" id="8_control"]
 
 [sub_resource type="Environment" id="Env_main"]
 background_mode = 1
@@ -123,5 +124,8 @@ script = ExtResource("3_cloud")
 
 [node name="LidarReceiver" type="Node" parent="."]
 script = ExtResource("2_receiver")
+
+[node name="ControlLink" type="Node" parent="."]
+script = ExtResource("8_control")
 
 [node name="HUD" parent="." instance=ExtResource("4_hud")]

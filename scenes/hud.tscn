@@ -31,6 +31,7 @@ text = "●"
 [node name="LidarText" type="Label" parent="LidarPane/Content/StatusRow"]
 unique_name_in_owner = true
 text = "等待数据"
+autowrap_mode = 3
 size_flags_horizontal = 3
 
 [node name="SectionPoint" type="PanelContainer" parent="LidarPane/Content"]
@@ -97,6 +98,7 @@ text = "数据源"
 [node name="ValueSource" type="Label" parent="LidarPane/Content/SectionData/VBox"]
 unique_name_in_owner = true
 text = "—"
+autowrap_mode = 3
 
 [node name="Hint" type="Label" parent="LidarPane/Content"]
 unique_name_in_owner = true
@@ -222,12 +224,179 @@ unique_name_in_owner = true
 horizontal_alignment = 2
 text = "—"
 
-[node name="ManagerPane" type="PanelContainer" parent="."]
-visible = false
+[node name="ControlPane" type="PanelContainer" parent="."]
 offset_left = 344.0
 offset_top = 20.0
-offset_right = 604.0
-offset_bottom = 260.0
+offset_right = 632.0
+offset_bottom = 459.0
+custom_minimum_size = Vector2(288, 0)
+unique_name_in_owner = true
+script = ExtResource("2_window")
+title = "遥控"
+closable = true
+
+[node name="Content" type="VBoxContainer" parent="ControlPane"]
+unique_name_in_owner = true
+theme_override_constants/separation = 6
+
+[node name="StatusRow" type="HBoxContainer" parent="ControlPane/Content"]
+theme_override_constants/separation = 6
+
+[node name="CtrlDot" type="Label" parent="ControlPane/Content/StatusRow"]
+unique_name_in_owner = true
+text = "●"
+
+[node name="CtrlText" type="Label" parent="ControlPane/Content/StatusRow"]
+unique_name_in_owner = true
+text = "遥控关闭"
+size_flags_horizontal = 3
+
+[node name="SectionSwitch" type="PanelContainer" parent="ControlPane/Content"]
+
+[node name="HBox" type="HBoxContainer" parent="ControlPane/Content/SectionSwitch"]
+theme_override_constants/separation = 8
+
+[node name="KSwitch" type="Label" parent="ControlPane/Content/SectionSwitch/HBox"]
+size_flags_horizontal = 3
+text = "向底盘发令"
+
+[node name="SwitchControl" type="CheckButton" parent="ControlPane/Content/SectionSwitch/HBox"]
+unique_name_in_owner = true
+focus_mode = 0
+
+[node name="SectionKeys" type="PanelContainer" parent="ControlPane/Content"]
+
+[node name="VBox" type="VBoxContainer" parent="ControlPane/Content/SectionKeys"]
+theme_override_constants/separation = 4
+
+[node name="Hdr" type="Label" parent="ControlPane/Content/SectionKeys/VBox"]
+text = "按键"
+
+[node name="RowW" type="HBoxContainer" parent="ControlPane/Content/SectionKeys/VBox"]
+alignment = 1
+theme_override_constants/separation = 4
+
+[node name="KeyW" type="PanelContainer" parent="ControlPane/Content/SectionKeys/VBox/RowW"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(46, 34)
+
+[node name="Text" type="Label" parent="ControlPane/Content/SectionKeys/VBox/RowW/KeyW"]
+text = "W"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="RowASD" type="HBoxContainer" parent="ControlPane/Content/SectionKeys/VBox"]
+alignment = 1
+theme_override_constants/separation = 4
+
+[node name="KeyA" type="PanelContainer" parent="ControlPane/Content/SectionKeys/VBox/RowASD"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(46, 34)
+
+[node name="Text" type="Label" parent="ControlPane/Content/SectionKeys/VBox/RowASD/KeyA"]
+text = "A"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="KeyS" type="PanelContainer" parent="ControlPane/Content/SectionKeys/VBox/RowASD"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(46, 34)
+
+[node name="Text" type="Label" parent="ControlPane/Content/SectionKeys/VBox/RowASD/KeyS"]
+text = "S"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="KeyD" type="PanelContainer" parent="ControlPane/Content/SectionKeys/VBox/RowASD"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(46, 34)
+
+[node name="Text" type="Label" parent="ControlPane/Content/SectionKeys/VBox/RowASD/KeyD"]
+text = "D"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="SectionOut" type="PanelContainer" parent="ControlPane/Content"]
+
+[node name="VBox" type="VBoxContainer" parent="ControlPane/Content/SectionOut"]
+theme_override_constants/separation = 3
+
+[node name="Hdr" type="Label" parent="ControlPane/Content/SectionOut/VBox"]
+text = "输出"
+
+[node name="RowLin" type="HBoxContainer" parent="ControlPane/Content/SectionOut/VBox"]
+[node name="KLin" type="Label" parent="ControlPane/Content/SectionOut/VBox/RowLin"]
+size_flags_horizontal = 3
+text = "线速度"
+[node name="ValueLin" type="Label" parent="ControlPane/Content/SectionOut/VBox/RowLin"]
+unique_name_in_owner = true
+horizontal_alignment = 2
+text = "+0.00 m/s"
+
+[node name="RowAng" type="HBoxContainer" parent="ControlPane/Content/SectionOut/VBox"]
+[node name="KAng" type="Label" parent="ControlPane/Content/SectionOut/VBox/RowAng"]
+size_flags_horizontal = 3
+text = "角速度"
+[node name="ValueAng" type="Label" parent="ControlPane/Content/SectionOut/VBox/RowAng"]
+unique_name_in_owner = true
+horizontal_alignment = 2
+text = "+0.00 rad/s"
+
+[node name="RowGear" type="HBoxContainer" parent="ControlPane/Content/SectionOut/VBox"]
+[node name="KGear" type="Label" parent="ControlPane/Content/SectionOut/VBox/RowGear"]
+size_flags_horizontal = 3
+text = "档位"
+[node name="ValueGear" type="Label" parent="ControlPane/Content/SectionOut/VBox/RowGear"]
+unique_name_in_owner = true
+horizontal_alignment = 2
+text = "—"
+
+[node name="SectionLink" type="PanelContainer" parent="ControlPane/Content"]
+
+[node name="VBox" type="VBoxContainer" parent="ControlPane/Content/SectionLink"]
+theme_override_constants/separation = 3
+
+[node name="Hdr" type="Label" parent="ControlPane/Content/SectionLink/VBox"]
+text = "链路"
+
+[node name="RowBackend" type="HBoxContainer" parent="ControlPane/Content/SectionLink/VBox"]
+[node name="KBackend" type="Label" parent="ControlPane/Content/SectionLink/VBox/RowBackend"]
+size_flags_horizontal = 3
+text = "通道"
+[node name="ValueBackend" type="Label" parent="ControlPane/Content/SectionLink/VBox/RowBackend"]
+unique_name_in_owner = true
+horizontal_alignment = 2
+text = "—"
+
+[node name="RowSubs" type="HBoxContainer" parent="ControlPane/Content/SectionLink/VBox"]
+[node name="KSubs" type="Label" parent="ControlPane/Content/SectionLink/VBox/RowSubs"]
+size_flags_horizontal = 3
+text = "底盘订阅"
+[node name="ValueSubs" type="Label" parent="ControlPane/Content/SectionLink/VBox/RowSubs"]
+unique_name_in_owner = true
+horizontal_alignment = 2
+text = "—"
+
+[node name="RowSent" type="HBoxContainer" parent="ControlPane/Content/SectionLink/VBox"]
+[node name="KSent" type="Label" parent="ControlPane/Content/SectionLink/VBox/RowSent"]
+size_flags_horizontal = 3
+text = "已发送 本机/底盘"
+[node name="ValueSent" type="Label" parent="ControlPane/Content/SectionLink/VBox/RowSent"]
+unique_name_in_owner = true
+horizontal_alignment = 2
+text = "—"
+
+[node name="Hint" type="Label" parent="ControlPane/Content"]
+unique_name_in_owner = true
+autowrap_mode = 2
+text = "开关关闭时不发送 · 空格 急停 · = / - 换档"
+
+[node name="ManagerPane" type="PanelContainer" parent="."]
+visible = false
+offset_left = 664.0
+offset_top = 20.0
+offset_right = 924.0
+offset_bottom = 280.0
 custom_minimum_size = Vector2(260, 0)
 unique_name_in_owner = true
 script = ExtResource("2_window")
@@ -260,6 +429,15 @@ button_pressed = true
 size_flags_horizontal = 3
 text = "基本信息"
 [node name="ToggleChassis" type="CheckButton" parent="ManagerPane/Content/SectionPanes/VBox/RowChassis"]
+unique_name_in_owner = true
+focus_mode = 0
+button_pressed = true
+
+[node name="RowCtrl" type="HBoxContainer" parent="ManagerPane/Content/SectionPanes/VBox"]
+[node name="KCtrl" type="Label" parent="ManagerPane/Content/SectionPanes/VBox/RowCtrl"]
+size_flags_horizontal = 3
+text = "遥控"
+[node name="ToggleCtrl" type="CheckButton" parent="ManagerPane/Content/SectionPanes/VBox/RowCtrl"]
 unique_name_in_owner = true
 focus_mode = 0
 button_pressed = true

@@ -1,37 +1,46 @@
-# WHEELTEC 雷达 3D 视图
+# WHEELTEC 雷达 3D 视图 + 遥控
 
-把小车激光雷达的散点扫描,渲染成俯视角的 3D 方块场景:车模型居中,周围是雷达
-测到的墙面/障碍物。Godot 前端 + Python 中间件,两端用 UDP 通信。
+把小车激光雷达的散点扫描渲染成 3D 方块场景(车模型居中,周围是测到的墙),并且
+**在同一个窗口里用 WASD 遥控小车**。Godot 前端 + Python 中间件,两端用 UDP 通信。
 
 ![效果](docs/preview.png)
 
 ## 为什么需要中间件
 
-Godot 不能直接连 ROS2。所以由 `bridge/lidar_bridge.py` 订阅 ROS 话题,把数据打成
-紧凑的二进制 UDP 包发给同机的 Godot。这样 **Godot 侧不需要任何 ROS 依赖**,也避免了
-跨机的 DDS 组播问题。
+Godot 不能直接连 ROS2,所以由 `bridge/lidar_bridge.py` 当翻译:
 
 ```
-┌─────────────────────────────┐        ┌──────────────────────────┐
-│ 小车 (Linux / ROS2 Humble)   │        │ 电脑                      │
-│                             │  SSH   │                          │
-│ 雷达驱动 → /scan ───────────┼───────→│ lidar_bridge.py          │
-│                             │        │   │  UDP 127.0.0.1:9100   │
-└─────────────────────────────┘        │   ▼                      │
-                                       │ Godot: 解析 → 合并 → 渲染 │
-                                       └──────────────────────────┘
+                        ┌──────────────────────────────┐
+   小车 (ROS2 Humble)    │       电脑                     │
+   /scan   ────────────►│  lidar_bridge.py             │
+   /odom   ────────────►│    │  ──9100──►  Godot       │
+   /imu/data_raw ──────►│    │            点云/面板      │
+   /PowerVoltage ──────►│    │                          │
+   /cmd_vel ◄───────────│    ◄──9101──  WASD 遥控      │
+                        └──────────────────────────────┘
 ```
+
+一个进程同时管两个方向:正向把传感器数据打成紧凑的二进制包发给 Godot,反向把
+Godot 的键盘命令转成 `geometry_msgs/Twist` 发布给底盘。**Godot 侧不需要任何 ROS
+依赖**(也不会有跨机 DDS 组播的麻烦),而 bridge 本来就是个常驻的 rclpy 节点。
+
+域号默认 **42**,和 `~/桌面/ROS` 里的控制项目保持一致,故意避开本机 Jazzy 的 0 域
+(Jazzy 发的 `ParticipantEntitiesInfo` 会让小车上 Humble 的节点崩掉)。
 
 ## 运行
 
-先让 Godot 里的 `main.tscn` 跑起来(它会在 `127.0.0.1:9100` 等数据),然后按需要
-选一种数据源启动中间件。
+先让 Godot 里的 `main.tscn` 跑起来(它在 `127.0.0.1:9100` 等数据),再按需要选
+一种数据源启动中间件。
 
-**1. 合成数据(不用小车,调界面用)**
+**1. 合成数据(不用小车,调界面/调遥控用)**
 
 ```sh
 python3 bridge/lidar_bridge.py --source demo
 ```
+
+demo 源会把遥控命令**积分成假里程计**:按 W 之后,「基本信息」里的线速度、位置、
+航向都会跟着变。也就是说没接小车也能把"按键 → 桥 → 底盘 → 里程计回显"整条链路
+走一遍。
 
 **2. 回放录好的 bag(不用 ROS)**
 
@@ -40,39 +49,133 @@ python3 bridge/lidar_bridge.py --source bag \
     --bag ~/桌面/ROS/bags/wheeltec_20261013_185317 --topic /scan --loop
 ```
 
+bag 模式下没有 ROS,遥控只记账不动车(面板「通道」会显示"模拟底盘")。
+
 **3. 接实车**
 
 ```sh
-# 在 ROS 目录先把雷达拉起来
-cd ~/桌面/ROS && ./connect_wheeltec.sh start
+# 在 ROS 目录先启动底盘(遥控需要底盘,不需要雷达)
+cd ~/桌面/ROS && ./connect_wheeltec.sh chassis
 
-# 再启动中间件(它会自己进 Humble 容器, 因为 rclpy 在容器里)
+# 再启动中间件(它会自己进 Humble 容器,因为 rclpy 在容器里)
 cd ~/ctrlscene && ./bridge/run_live.sh
+```
+
+`chassis` 而不是 `start`,是为了不和观测项目抢雷达串口;要看雷达再单独
+`./connect_wheeltec.sh start`。
+
+**只做观测、不接管遥控**(例如同时开了 `wheeltec-control`):
+
+```sh
+./bridge/run_live.sh --no-control
 ```
 
 ## 操作
 
 | 键 | 作用 |
 | --- | --- |
+| `W` / `S` | 前进 / 后退 |
+| `A` / `D` | 左转 / 右转(与 W/S 同时按就是边走边转) |
+| `Space` | 急停(按住即归零,松开恢复) |
+| `=` / `-` | 加档 / 减档(4 档) |
 | `M` | 切换合并方式:散点 → 网格合并 → 墙面合并 |
-| `T` | 切换视角:正俯视 / 斜俯视 |
+| `V` | 切换视角:俯视 → 斜俯视 → 第一人称 |
+| `Tab` | 打开/关闭「管理」窗 |
+| `Esc` | 退出第一人称 |
+| `R` | 复位(视野、视角、自动适配) |
 | 滚轮 | 缩放视野半径 |
-| `R` | 复位(同时恢复自动适配) |
+
+**WASD 只在「遥控」窗的开关打开后才真的发令**,开关关着时按键灯只会变蓝(表示
+按键被识别了,但不会动),打开后才变琥珀。这个颜色区分就是"会不会动"的提示。
 
 **自动适配视野**:启动后的前 5 帧会按当前扫描的最远点自动定视野
 (`最远点 × 1.3`,夹在 3~30m);一旦你滚动滚轮就锁定,不再自动改。
 不同房间量程差别很大(实测有 5m 的小房间,也有 10m 的办公室),固定视野会让
 小房间显得空、大房间装不下。
 
+## 遥控
+
+### 通路
+
+```
+键盘 → scripts/control_link.gd → UDP 127.0.0.1:9101 → lidar_bridge.py
+     → geometry_msgs/Twist → /cmd_vel → 底盘
+```
+
+`control_link.gd` 每帧直接查物理键位(`Input.is_physical_key_pressed`),不走按键
+事件回调:长按不会被系统的自动重复干扰,鼠标被第一人称视角捕获时也照常工作。
+发令频率固定 20Hz,和 `~/桌面/ROS/wheeltec-control` 的 `publish_rate_hz` 一致。
+
+档位和那边也是同一组(0.08/0.30 → 0.15/0.60 → 0.25/0.90 → 0.35/1.20),换档键也
+一致(`=` / `-`),所以两个入口的手感不会打架。
+
+### 关掉就是停车
+
+这一点单独说,因为它决定了"敢不敢在真车上按"。
+
+| 位置 | 触发 | 结果 |
+| --- | --- | --- |
+| Godot | 拨开关关闭 / 关掉「遥控」窗关闭 | 立刻补发 5 帧零速度(0.25s),之后停发 |
+| Godot | 窗口失焦、被切到后台 | 主循环停下 → 不发包 → 落到下一行 |
+| bridge | 0.5 秒收不到包,或包里的开关位不亮 | 命令归零,再补 5 帧零速度,然后静默 |
+
+**任何一端崩掉,车最多再走 0.5 秒。** 想更保守就把看门狗调小:
+
+```sh
+./bridge/run_live.sh --watchdog 0.3
+```
+
+反过来,因为"窗口失焦就停",遥控时**必须让 Godot 窗口保持在前台**。这是刻意的
+取舍:宁可误停,不可漏停。
+
+### 限幅
+
+Godot 按档位限一次(最大 0.35 m/s / 1.20 rad/s),bridge 收到后再硬限一次
+(`CTRL_MAX_LINEAR` / `CTRL_MAX_ANGULAR`)。后者是兜底,防的是"Godot 侧被改坏"
+或者"有人手搓 UDP 包"。
+
+### 面板上的每一项是什么意思
+
+「遥控」窗:
+
+```
+● 发令中 · 底盘已订阅      ← 绿: 开关开着 + bridge 收到包 + /cmd_vel 有人订阅
+  ┌ 向底盘发令      [开关] ┐
+  │ 按键   W              │  ← W/A/S/D 四格,按下的键会亮
+  │      A  S  D          │     蓝 = 按着但不会动; 琥珀 = 按着且真的在发令
+  │ 输出  线速度 +0.15 m/s │
+  │       角速度 +0.60 rad/s│
+  │       档位   2 / 4      │
+  │ 链路  通道   模拟底盘    │  ← ros2:/cmd_vel 才是真的能驱动底盘
+  │       底盘订阅 1        │  ← 只有真 ROS 出口这个数才有意义,否则显示 —
+  │       已发送 本机/底盘   │  ← 左边是 Godot 发的,右边是 bridge 发的
+  └ Tab 打开/关闭本窗       ┘
+```
+
+状态行的几种取值都对应一个确定的故障点:
+
+| 显示 | 含义 |
+| --- | --- |
+| 遥控关闭 · 不发令 | 开关没开,什么都不会发 |
+| 已开启 · 等 bridge 回执 | bridge 一包状态都没回(没启动?端口不通?) |
+| 已开启 · bridge 没收到包 | bridge 在回状态,但没收到遥控包(被防火墙/端口占了) |
+| 已开启 · 正在归零 | bridge 判定断流,正在补零速度 |
+| 发令中 · 无订阅者 | 包到了、也在发,但 `/cmd_vel` 没人订阅 —— 底盘没起来 |
+| 发令中 · 底盘已订阅 | 正常 |
+| 急停中 · 松开空格恢复 | 按着 Space |
+
+「管理」窗(`Tab`)里可以关掉任意一个窗格(雷达 / 遥控 / 基本信息),也可以直接点
+各窗标题栏的 `✕`。**关掉「遥控」窗会同时断开遥控**,避免"看不见开关却还在发令"。
+
 ## 三种合并方式
 
 激光是"每度一个测距值"的散点,直接画会又碎又乱。`scripts/point_cloud.gd` 提供三种:
 
-| 模式 | 做法 | 540 点实测输出 |
+| 模式 | 做法 | 实测输出(540 点 / 539 有效) |
 | --- | --- | --- |
-| **散点** | 每个有效点一个小方块 | 484 个 |
-| **网格合并** | 按 14cm 网格归类,每格只留最近的点 | 71 个 |
-| **墙面合并** | 沿扫描顺序把点拟合成线段,用长条方块表示 | 23~33 个 |
+| **散点** | 每个有效点一个小方块 | 539 个 |
+| **网格合并** | 按 14cm 网格归类,每格只留最近的点 | 199 个 |
+| **墙面合并** | 沿扫描顺序把点拟合成线段,用长条方块表示 | 20 个 |
 
 **墙面合并**的做法值得说一下:
 
@@ -111,13 +214,29 @@ cd ~/ctrlscene && ./bridge/run_live.sh
 
 ## HUD
 
-左上角是一个**独立场景** `scenes/hud.tscn`,不是一个脚本画出来的:
+四个窗格都是**独立场景组件**,不是脚本画出来的:`scenes/hud.tscn` 里四个
+`PanelContainer` + `scripts/ui_window.gd`(统一外壳:蓝标题栏、拖动、折叠、关闭)。
+配色照搬参考工程的 Solver 面板。
+
+| 窗格 | 内容 |
+| --- | --- |
+| 雷达 3D 视图 | 连接状态、渲染/有效点数、帧率、合并方式、量程、观察视角、数据源 |
+| 遥控 | 开关、WASD 按键灯、线/角速度、档位、通道、底盘订阅数、发送计数 |
+| 基本信息 | 线速度/角速度(大字)、加速度、位置、航向、电压、IMU |
+| 管理(`Tab`) | 三个窗格的显隐开关 + 三个视角按钮 |
 
 - **拖动**:按住标题栏拖走
 - **折叠**:点 `−` / `+`
-- 新增一行状态只需在 tscn 的 `Stats` 网格里加两个 Label(值那个勾上
-  `unique_name_in_owner`),再在 `update_state()` 里赋一次值
-- 配色集中在 `hud.gd` 顶部的常量里,和点云/地面共用同一套 Kenney 调色板
+- 新增一行状态只需在 `hud.tscn` 里加两个 Label(值那个按命名约定起名),再在
+  `hud.gd` 的 `update_*()` 里赋一次值
+- **上色靠命名约定**:`Hdr*` 分区小标题、`K*` 键名、`V*` 数值、`Big*` 大号数值、
+  `Cap*` 大号数值上方的小标签、`Hint*` 提示、`Section*` 分区底板
+- 想加新窗格:复制一个 `PanelContainer` + `ui_window.gd`,里面放 `Content` 容器即可,
+  外壳不用重写
+
+> `hud.gd` 里用 `find_child(name, true, false)` 而不是 `%Name`。原因是被
+> `main.tscn` 实例化的场景根节点 `owner` 为 null,而 `%` 是按 owner 链查找的,
+> 在这个位置找不到。
 
 ## 关键实现细节
 
@@ -139,39 +258,93 @@ Vector3(-r*sin(a), 0, -r*cos(a))
 **MultiMesh**。所有方块用一个 `MultiMeshInstance3D` 一次 draw call 画完,
 每帧只更新实例变换和颜色,540~2000 个实例对帧率没有影响。
 
+**扫描和遥控分两个线程**。demo 的 `read()` 每次要 `sleep` 一整个扫描周期(100ms),
+bag 要按时间戳等,ros2 的 `read()` 最多阻塞 500ms。这些都压在同一个循环上的话,
+遥控就会被扫描节奏拖着走(10Hz 甚至更慢),而底盘要的是稳定 20Hz。所以扫描在
+`ScanPump` 线程里跑,队列深度故意只有 1(新帧覆盖旧帧,宁可丢扫描也不越积越滞后),
+主循环只管 250Hz 轮询遥控 + 按 20Hz 发令。
+
 **颜色**。按距离插值:近处橙红 `#ff7e44` → 中段琥珀 `#ffd565` → 远处冷蓝
 `#6794d9`,都取自参考项目的 Kenney 调色板。
 
 **在线判定**。HUD 的绿点表示最近 1.5 秒内收到过新扫描;断流时变红并显示已中断
-多少秒,不会把旧帧当实时画面。
+多少秒,不会把旧帧当实时画面。遥测单独判(3 秒),因为底盘可能比雷达停得早。
+
+## 验证
+
+不需要小车,只需要 ROS 环境(容器):
+
+```sh
+# /cmd_vel 通路自测: 自己发、自己收, 确认 Twist 编解码和 DDS 都正常
+~/桌面/ROS/wheeltec_humble.sh python3 ~/ctrlscene/bridge/test_cmdvel.py
+
+# 接上小车后, 看底盘有没有订阅 /cmd_vel
+~/桌面/ROS/wheeltec_humble.sh python3 ~/ctrlscene/bridge/test_cmdvel.py --watch
+
+# 架空后让轮子真的转一下(3 秒后自动补零速度)
+~/桌面/ROS/wheeltec_humble.sh python3 ~/ctrlscene/bridge/test_cmdvel.py \
+    --drive 0.05 0.0 --seconds 3
+```
+
+已实测通过的项:
+
+- 遥控包解析、开关位、看门狗归零、超限限幅、序号归零(模拟 Godot 重启)
+- 关开关 → 补 5 帧零速度(恰好 5 帧,不多不少)
+- 关「遥控」窗 → 自动断开遥控并补零速度
+- W / S / A / D / W+A / S+D / W+S 相消 / 空格急停 / 换档与档位夹取
+- bridge ros2 分支:另开一个容器监听 `/cmd_vel`,收到 45 条(40 条 0.20/0.50
+  + 5 条归零),回执里 `subs=1`、`bad=0`
+- 观测链路:同帧 `ranges[270]=0.339` ↔ HUD `0.34 m`
+
+**尚未验证**:真车上的实际运动。`/cmd_vel` 话题名、QoS、以及底盘对 20Hz 的响应
+需要在接上小车后确认一遍(先看订阅数,再架空试转,最后落地低速走)。
 
 ## 素材来源
 
-车辆和地面模型来自 `~/桌面/godot/proj/sokoban`(ShenMian/Sokoban),素材是
-Kenney 的 [Prototype Kit](https://kenney.nl/assets/prototype-kit)(CC0):
+车辆模型来自 Kenney 的 [Car Kit](https://kenney.nl/assets/car-kit)(CC0):
 
-- `assets/models/car/van.glb` — 车体(来自 Kenney **Car Kit**,同样 CC0)
+- `assets/models/car/van.glb` — 车体
 - `assets/models/car/Textures/colormap.png` — 该 kit 的调色板贴图
 - 雷达柱、地面光环用 Godot 原生圆柱/圆环 + 同一套平涂着色器
 
 `colormap.png` 必须放在 glb 同级目录的 `Textures/` 下(路径大小写敏感,glb 里写死了),
-否则模型会渲染成纯白。参考项目里的 `.glb`/`.png` 原本是 Git LFS 指针,真文件需要单独拉取。
+否则模型会渲染成纯白。
 
 ## 文件
 
 | 文件 | 职责 |
 | --- | --- |
-| `main.tscn` | 场景:环境、灯光、相机、地面、车、点云、HUD |
-| `scenes/hud.tscn` | HUD 组件:可拖动/可折叠的调试窗口 + 准星 |
+| `main.tscn` | 场景:环境、灯光、相机、地面、车、点云、HUD、遥控出口 |
+| `scenes/hud.tscn` | 四个窗格 + 准星 |
 | `scripts/lidar_viewer.gd` | 主控:收包分发、三种视角、准星测距、HUD 刷新 |
-| `scripts/lidar_receiver.gd` | UDP 收包与协议解析 |
+| `scripts/lidar_receiver.gd` | UDP 收包与协议解析(扫描/遥测/状态) |
+| `scripts/control_link.gd` | 遥控出口:键位轮询、档位、打包反发、关闭补零 |
 | `scripts/point_cloud.gd` | 三种合并算法 + MultiMesh 渲染 |
-| `scripts/hud.gd` | 代码构建的状态面板 |
+| `scripts/ui_window.gd` | 浮窗外壳:标题栏、拖动、折叠、关闭、按命名上色 |
+| `scripts/hud.gd` | 四个窗格的调度与按键灯 |
 | `shaders/box.gdshader` | 方块:平涂 + 法线明暗 |
 | `shaders/grid.gdshader` | 地面:米制网格 + 2m 测距环 + 淡出 |
-| `bridge/lidar_bridge.py` | 中间件:ros2 / bag / demo 三种数据源 |
+| `bridge/lidar_bridge.py` | 中间件:数据源 + 遥控接收 + `/cmd_vel` 出口 |
+| `bridge/test_cmdvel.py` | 探针:验证 `/cmd_vel` 通路(可对真车用) |
 | `bridge/run_live.sh` | 在容器里接实车 |
-| `bridge/PROTOCOL.md` | UDP 协议定义 |
+| `bridge/PROTOCOL.md` | UDP 协议定义(两个方向都写了) |
+
+## 中间件的命令行
+
+```
+--source ros2|bag|demo   数据源(默认 demo)
+--topic /scan            激光话题
+--bag PATH --loop --speed   bag 回放
+--domain 42              ROS_DOMAIN_ID
+--odom-topic /imu-topic /battery-topic   遥测来源
+--host 127.0.0.1 --port 9100            往哪发扫描
+--control-port 9101      在哪收遥控
+--cmd-vel-topic /cmd_vel 底盘速度话题
+--cmd-rate 20            遥控发令频率 Hz
+--watchdog 0.5           多久收不到遥控就归零
+--no-control             忽略遥控,只转发传感器
+--quiet --dump           少打印 / 打印解析结果
+```
 
 ## 扩展
 
@@ -179,8 +352,10 @@ Kenney 的 [Prototype Kit](https://kenney.nl/assets/prototype-kit)(CC0):
 
 - **加相机**: 在 `lidar_bridge.py` 里加一个 `IMAGE` 编码函数(协议里已预留
   `MSG_IMAGE`),Godot 侧在 `_decode` 里加一个分支。
-- **加里程计/电池**: 复用 `MSG_STATUS` 的 JSON 负载,把字段塞进 dict 即可,
-  Godot 的 `status_received` 信号已经接好。
+- **加新的遥测字段**: `Telemetry` 是定长结构,加字段会变协议版本;更省事的做法是
+  加一个新 `MSG_TELEMETRY2`,或把边缘字段塞进 `MSG_STATUS` 的 JSON。
+- **加新的上游控制**(云台、灯效): 照抄 `ControlLink`,在 9101 上再定义一个
+  magic 不同的包类型即可。
 
 ## 踩过的坑
 
@@ -194,6 +369,7 @@ Kenney 的 [Prototype Kit](https://kenney.nl/assets/prototype-kit)(CC0):
 序号乱跳、画面抖动。检查:`pgrep -af "lidar_bridge"` 应该只有一个 python 进程
 (加上一层 `docker run` 壳共 2 行)。另外 `job_kill` 只是杀外层壳,容器内的进程
 可能还在,必要时 `docker ps -q --filter ancestor=wheeltec-humble:latest | xargs -r docker kill`。
+现在 9101 也会被 bind,所以第二份 bridge 直接起不来 —— 这是故意让它"吵"的。
 
 **场景里必须有灯。** 车模用的是需要光照的 `StandardMaterial3D`,而点云和地面用的是
 `unshaded` 自定义着色器 —— 所以整场没灯时,点云/地面一切正常,车模却是纯黑的一团。
@@ -206,10 +382,26 @@ Kenney 的 [Prototype Kit](https://kenney.nl/assets/prototype-kit)(CC0):
 **ROS 源的 `seq` 必须是自增计数器。** 一开始我拿
 `stamp.nanosec ^ stamp.sec` 当序号,它不是单调递增的,接收端按"序号断档"算丢包,
 计数会瞬间涨到 500 亿。已改成自增,并在接收端给丢包计数加了 1000 的上限。
+遥控包的序号同理:**只统计丢包,不拿来做排序丢弃**,否则 Godot 一重启序号归零,
+后面所有包都会被误判成"过期包"丢掉,表现为"按了没反应"。
+
+**`Input.parse_input_event()` 是缓冲的。** 用它模拟按键时,状态要等下一帧
+`flush` 才生效,所以"立刻读 `is_physical_key_pressed`"会读到 false,看起来像按键
+失效。要么 `Input.flush_buffered_events()`,要么等一帧。另外**不能复用同一个
+`InputEventKey` 对象连发多个事件**:缓冲里存的是引用,后一次修改会把前面的覆盖掉,
+于是"按下 Space 再松开"变成"松开了三次 Space",表现为急停解不掉。每个事件新建
+一个对象、发完就 flush,才稳。
+
+**Godot 窗口失焦时主循环会停。** 这在遥控场景下不是 bug 而是安全特性(见上文),
+但调试时要注意:后台窗口的 `_process` 不跑,`game_eval` 里长时间的 `await` 也会
+卡住。调试时可以先 `DisplayServer.window_move_to_foreground()`,或者干脆用
+`OS.delay_msec()` + 手工调 `_process()` 把时序握在自己手里。
 
 ## 限制
 
 - 只渲染雷达原始观测,**不做 SLAM、不做定位、不叠加地图**。
 - 相机和雷达没有时间同步和外参标定,不能据此认为某个像素对应某个激光点。
-- 视野是雷达自身坐标系;想显示"车在世界里的轨迹"需要再接 `/odom`,目前没做。
+- 视野是雷达自身坐标系;想显示"车在世界里的轨迹"要看「基本信息」里的里程计数值,
+  但没有画到地面上。
 - 中间件按 bag 原始时间戳节奏回放,不保证严格实时。
+- 遥控是**直接发速度**,没有避障、没有加减速规划。撞墙靠人看屏幕。
